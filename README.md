@@ -1,6 +1,6 @@
 # Multi-Agent Research System
 
-An intelligent research automation platform that combines AI agents to conduct comprehensive web research. The system uses OpenAI's function calling to intelligently route requests between research workflows and general conversation.
+An intelligent research automation platform that combines AI agents to conduct various workflows. The system uses OpenAI's function calling to intelligently route requests to agents.
 
 ## Features
 
