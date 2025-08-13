@@ -1,15 +1,16 @@
 # Multi-Agent Research System
 
-An intelligent research automation platform that combines AI agents to conduct comprehensive web research. The system guides users through research planning, executes automated searches, evaluates content relevancy, and generates detailed reports.
+An intelligent research automation platform that combines AI agents to conduct comprehensive web research. The system uses OpenAI's function calling to intelligently route requests between research workflows and general conversation.
 
 ## Features
 
-- Interactive research planning with AI guidance
-- Automated web search with rate limiting and retry logic
-- Content scraping and extraction using Playwright
-- Intelligent content evaluation and filtering
-- Organized output with timestamped research folders
-- SQLite database for research plan persistence
+- **Smart Request Routing** - AI-powered classification between research and general queries
+- **Automated Research Workflow** - Complete end-to-end research automation
+- **Interactive & Automated Modes** - Support for both guided and direct research initiation
+- **Content Scraping & Evaluation** - Playwright-powered scraping with AI content assessment
+- **Article Generation** - AI-generated articles with custom illustrations
+- **Organized Output Management** - Timestamped research folders with complete audit trails
+- **SQLite Database** - Persistent storage for research plans and history
 
 ## Prerequisites
 
@@ -48,18 +49,34 @@ Run the application:
 npm start
 ```
 
-The system guides you through a structured research workflow:
+The system provides two interaction modes:
 
-1. **Research Planning** - Interactive session to define research objectives
+### Research Mode
+When you ask research-related questions, the system automatically triggers the full research workflow:
+
+**Example research requests:**
+- "Research artificial intelligence trends"
+- "Investigate climate change impacts"  
+- "Study the history of cryptocurrency"
+
+**Research workflow:**
+1. **Research Planning** - AI generates a comprehensive research plan
 2. **Web Search** - Automated search term generation and web searches  
 3. **Content Scraping** - Extract full content from relevant web pages
 4. **Content Evaluation** - AI-powered relevancy assessment and filtering
-5. **Report Generation** - Comprehensive markdown reports with source links
+5. **Article Generation** - AI-powered 3-page articles with generated images
 
-Commands during research planning:
-- Describe your research topic and objectives
-- Type `accept` when satisfied with the research plan
-- Type `exit` to quit
+### General Chat Mode
+For non-research queries, the system provides direct conversational responses:
+
+**Example general requests:**
+- "What's the weather today?" → "I can't do it"
+- "Tell me a joke" → *Provides a joke*
+- "What's 2+2?" → "The answer is 4"
+
+**Commands:**
+- Type your question or research request
+- Type `exit` to quit the application
 
 ## Output Structure
 
@@ -67,7 +84,8 @@ Each research session creates a timestamped folder in `/output/` containing:
 - `search-terms-[timestamp].txt` - Generated search terms and configuration
 - `scraping-results-[timestamp].txt` - Full content extraction results  
 - `content-evaluation-[timestamp].txt` - Relevancy scores and filtering decisions
-- `summary_report_[timestamp].md` - Final research report
+- `research_article_[timestamp].md` - AI-generated 3-page research article
+- `article_image_[timestamp].png` - AI-generated article illustration
 
 ## Architecture
 
@@ -80,6 +98,7 @@ agents/
 ├── web-search-agent.js
 ├── scraping-agent.js
 ├── evaluator-agent.js
+├── article-writer-agent.js
 └── summary-report-agent.js
 
 tools/
@@ -97,6 +116,4 @@ database/
 - **OpenAI API**: Get from [platform.openai.com](https://platform.openai.com/api-keys)
 - **Brave Search API**: Get from [api.search.brave.com](https://api.search.brave.com/)
 
-## License
 
-MIT License

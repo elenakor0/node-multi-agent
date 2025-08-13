@@ -17,9 +17,9 @@ database/*.db
 
 # Generated reports and documentation
 summary_report.md
-output/
-AI Docs/
 
+AI Docs/
+output/
 # IDE
 .vscode/
 .idea/

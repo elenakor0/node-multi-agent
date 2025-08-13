@@ -26,10 +26,9 @@ export class ResearchPlannerAgent extends Agent {
                 The user will provide you with a research task and your job is to create a research plan together with the user.
                 Your job is NOT to answer the user's question. Instead, you MUST help them build a good research plan that can then be handed off to some other agent to execute.
                 The research plan should include things like:
-                    - Core topics to be researched
-                    - Related topics
+                    - Core topics to be researched                    
                     - Topics that should be avoided
-                    - Time frame for web research (i.e, max age of the web search results)
+                    - Time frame for web research (maximum age of the web search results)
                 `
             }
         ];
@@ -61,14 +60,84 @@ export class ResearchPlannerAgent extends Agent {
     }
 
     /**
+     * Runs the agent with automated topic-based planning.
+     * @param {string} topic - The research topic
+     * @returns {Promise<Object>}
+     */
+    async runWithTopic(topic) {
+        try {
+            console.log(`Creating research plan for topic: "${topic}"`);
+            
+            // Create a research plan based on the topic
+            const planningPrompt = `Create a research plan for the topic: "${topic}". 
+            The plan should include:
+            - Core topics to be researched
+            - Topics that should be avoided
+            - Time frame for web research (maximum age of results)
+            
+            Please provide a clear, structured research plan.`;
+            
+            this.messages.push({ role: "user", content: planningPrompt });
+            
+            const response = await this.client.chat.completions.create({
+                model: this.model,
+                messages: this.messages,
+            });
+            
+            const researchPlan = response.choices[0].message.content;
+            console.log("Generated research plan:");
+            console.log(researchPlan);
+            
+            return { researchPlan, initialInput: topic };
+            
+        } catch (error) {
+            console.error("Error in ResearchPlannerAgent.runWithTopic:", error);
+            throw error;
+        }
+    }
+
+    /**
      * Runs the agent.
+     * @param {string} topic - Optional research topic to start with
+     * @param {Object} rl - Readline interface to use for input
      * @returns {Promise<string>}
      */
-    async run() {
-        const rl = this.createReadlineInterface();
-        let initialInput = '';
+    async run(topic = null, rl = null) {
+        const shouldCloseRl = !rl; // Only close if we created it ourselves
+        if (!rl) {
+            rl = this.createReadlineInterface();
+        }
+        let initialInput = topic || '';
         
-        console.log("Hi! Please describe today's research task:");
+        if (topic) {
+            console.log(`Research topic: "${topic}"`);
+            console.log("Let me create an initial research plan for you...");
+            
+            // Generate initial plan for the given topic
+            const planningPrompt = `Create a research plan for the topic: "${topic}". 
+            The plan should include:
+            - Core topics to be researched
+            - Topics that should be avoided
+            - Time frame for web research (maximum age of results)
+            
+            Please provide a clear, structured research plan.`;
+            
+            this.messages.push({ role: "user", content: planningPrompt });
+            
+            const response = await this.client.chat.completions.create({
+                model: this.model,
+                messages: this.messages,
+            });
+            
+            const initialPlan = response.choices[0].message.content;
+            console.log("\nGenerated initial research plan:");
+            console.log("=".repeat(50));
+            console.log(initialPlan);
+            console.log("=".repeat(50));
+            console.log("\nPlease review and modify this plan, or type 'accept' to proceed.");
+        } else {
+            console.log("Please describe your research task:");
+        }
         
         try {
             while (true) {
@@ -84,7 +153,7 @@ export class ResearchPlannerAgent extends Agent {
                 
                 if (userInput === "exit") {
                     console.log("Exiting.");
-                    rl.close();
+                    if (shouldCloseRl) rl.close();
                     process.exit(0);
                 } else if (userInput === "accept") {
                     console.log("Research plan accepted. Continuing...");
@@ -99,7 +168,7 @@ export class ResearchPlannerAgent extends Agent {
                     const finalPlan = response.choices[0].message.content;
                     console.log("Here's the final research plan:");
                     console.log(finalPlan);
-                    rl.close();
+                    if (shouldCloseRl) rl.close();
                     return { researchPlan: finalPlan, initialInput };
                 }
 
@@ -134,7 +203,7 @@ export class ResearchPlannerAgent extends Agent {
             }
         } catch (error) {
             console.error("Error in ResearchPlannerAgent:", error);
-            rl.close();
+            if (shouldCloseRl) rl.close();
             throw error;
         }
     }

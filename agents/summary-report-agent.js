@@ -1,4 +1,5 @@
 import { Agent } from './base/agent.js';
+import fs from 'fs/promises';
 
 /**
  * A summary report agent that uses the tools to summarize the search results.
@@ -33,11 +34,34 @@ export class SummaryReportAgent extends Agent {
     }
 
     /**
+     * Writes summary to file
+     * @param {string} summary The summary content
+     * @param {string} researchPath The path to save the summary
+     * @returns {Promise<string>} The path where the summary was saved
+     */
+    async writeSummaryToFile(summary, researchPath) {
+        try {
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+            const filename = `research_summary_${timestamp}.md`;
+            const outputPath = `${researchPath}/${filename}`;
+
+            await fs.writeFile(outputPath, summary, 'utf-8');
+            console.log(`Summary saved to: ${outputPath}`);
+            return outputPath;
+        } catch (error) {
+            console.error('Error writing summary file:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Runs the agent.
      * @param {Array} searchResults 
-     * @returns {Promise<string>}
+     * @param {string} researchPath Optional path to save the summary file
+     * @returns {Promise<Object|string>} Summary content and file path if researchPath provided, otherwise just the summary content
      */
-    async run(searchResults) {
+    async run(searchResults, researchPath = null) {
         console.log("Summarizing search results...");
         this.messages.push({
             role: "user",
@@ -59,6 +83,19 @@ export class SummaryReportAgent extends Agent {
             report = report.substring(0, report.length - 3);
         }
         
-        return report.trim();
+        const summary = report.trim();
+
+        // If researchPath is provided, save to file and return both content and path
+        if (researchPath) {
+            const summaryPath = await this.writeSummaryToFile(summary, researchPath);
+            return {
+                summary,
+                summaryPath,
+                wordCount: summary.split(' ').length
+            };
+        }
+
+        // Otherwise just return the summary content
+        return summary;
     }
 }
