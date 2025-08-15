@@ -78,6 +78,7 @@ export class ImageGeneratorAgent extends Agent {
      * @param {string} topic - The topic to base the folder name on
      * @returns {Promise<string>} The created folder path
      */
+    
     async createImageFolder(topic) {
         try {
             // Create a clean folder name from the topic

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import fs from 'fs/promises';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -81,4 +82,11 @@ export const createResearchFolderName = async (userInput) => {
         
         return `${namePrefix}-${timestamp}`;
     }
+};
+
+export const createResearchFolder = async (folderName) => {
+    const researchPath = `output/${folderName}`;
+    await fs.mkdir(researchPath, { recursive: true });
+    console.log(`Created research folder: ${researchPath}`);
+    return researchPath;
 };

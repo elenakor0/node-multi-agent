@@ -1,1 +1,1 @@
-export { createResearchFolderName } from './folder-name-generator.js';
+export { createResearchFolderName, createResearchFolder } from './folder-name-generator.js';
