@@ -9,7 +9,7 @@ const DB_FILE = join(__dirname, 'research.db');
 
 sqlite3.verbose();
 
-function getDbConnection() {
+const getDbConnection = () => {
     return new Promise((resolve, reject) => {
         const db = new sqlite3.Database(DB_FILE, (err) => {
             if (err) {
@@ -21,7 +21,7 @@ function getDbConnection() {
     });
 }
 
-export async function createResearchPlansTable() {
+export const createResearchPlansTable = async () => {
     const db = await getDbConnection();
     return new Promise((resolve, reject) => {
         db.run(`
@@ -41,7 +41,7 @@ export async function createResearchPlansTable() {
     });
 }
 
-export async function getResearchPlans() {
+export const getResearchPlans = async () => {
     const db = await getDbConnection();
     return new Promise((resolve, reject) => {
         db.all("SELECT * FROM research_plans", (err, rows) => {
@@ -55,7 +55,7 @@ export async function getResearchPlans() {
     });
 }
 
-export async function addResearchPlan(shortSummary, details) {
+export const addResearchPlan = async (shortSummary, details) => {
     const db = await getDbConnection();
     return new Promise((resolve, reject) => {
         db.run(
@@ -77,7 +77,7 @@ export async function addResearchPlan(shortSummary, details) {
     });
 }
 
-export async function deleteResearchPlan(researchPlanId) {
+export const deleteResearchPlan = async (researchPlanId) => {
     const db = await getDbConnection();
     return new Promise((resolve, reject) => {
         db.run(
@@ -95,6 +95,6 @@ export async function deleteResearchPlan(researchPlanId) {
     });
 }
 
-export async function initDb() {
+export const initDb = async () => {
     await createResearchPlansTable();
 }

@@ -1,5 +1,6 @@
 import { ResearchPlannerAgent, WebSearchAgent, ScrapingAgent, EvaluatorAgent, ArticleWriterAgent, SummaryReportAgent, ImageGeneratorAgent, UrlSummarizerAgent } from './agents/index.js';
 import { initDb } from './database/database.js';
+import { createResearchFolderName } from './utils/index.js';
 import fs from 'fs/promises';
 import OpenAI from 'openai';
 import readline from 'readline';
@@ -13,86 +14,8 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-async function createResearchFolderName(userInput) {
-    try {
-        console.log("Generating descriptive folder name...");
-        
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a folder naming assistant. Create a descriptive folder name based on the user's research request.
-                    
-                    Rules:
-                    - Maximum 5 words
-                    - Use lowercase
-                    - Separate words with dashes
-                    - Be descriptive and concise
-                    - Focus on the main research topic/theme
-                    - No special characters except dashes
-                    - Return ONLY the folder name, nothing else
-                    
-                    Examples:
-                    "Research climate change effects" → "climate-change-effects"
-                    "Write an article about renewable energy" → "renewable-energy-article"
-                    "Investigate cryptocurrency market trends" → "cryptocurrency-market-trends"
-                    "Study artificial intelligence in healthcare" → "ai-healthcare-research"`
-                },
-                {
-                    role: "user",
-                    content: userInput
-                }
-            ]
-        });
 
-        let folderName = completion.choices[0].message.content.trim().toLowerCase();
-        
-        // Clean up the response - remove quotes, extra spaces, and ensure only valid characters
-        folderName = folderName
-            .replace(/['"]/g, '')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-        
-        // Fallback if AI response is invalid
-        if (!folderName || folderName.length === 0) {
-            folderName = userInput
-                .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, '')
-                .split(/\s+/)
-                .filter(word => word.length > 0)
-                .slice(0, 3)
-                .join('-') || 'research';
-        }
-        
-        // Add timestamp
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
-        
-        return `${folderName}-${timestamp}`;
-        
-    } catch (error) {
-        console.error("Error generating folder name:", error);
-        
-        // Fallback to original logic
-        const words = userInput
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .split(/\s+/)
-            .filter(word => word.length > 0)
-            .slice(0, 3);
-        
-        const namePrefix = words.join('-') || 'research';
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
-        
-        return `${namePrefix}-${timestamp}`;
-    }
-}
-
-async function createResearchFolder(folderName) {
+const createResearchFolder = async (folderName) => {
     const researchPath = `output/${folderName}`;
     await fs.mkdir(researchPath, { recursive: true });
     console.log(`Created research folder: ${researchPath}`);
@@ -163,7 +86,7 @@ const researchTools = [
     }
 ];
 
-async function getUserInput(prompt) {
+const getUserInput = async (prompt) => {
     return new Promise((resolve) => {
         rl.question(prompt, (answer) => {
             resolve(answer.trim());
@@ -171,7 +94,7 @@ async function getUserInput(prompt) {
     });
 }
 
-async function routeUserRequest(userInput) {
+const routeUserRequest = async (userInput) => {
     try {
         const completion = await openai.chat.completions.create({
             model: "gpt-4",
@@ -249,7 +172,7 @@ Examples of general requests:
     }
 }
 
-async function handleGeneralChat(userInput) {
+const handleGeneralChat = async (userInput) => {
     try {
         const completion = await openai.chat.completions.create({
             model: "gpt-4",
@@ -272,7 +195,7 @@ async function handleGeneralChat(userInput) {
     }
 }
 
-async function runResearchWorkflow(topic, outputType, initialInput, rl) {
+const runResearchWorkflow = async (topic, outputType, initialInput, rl) => {
     try {
         console.log("\n=== STARTING RESEARCH WORKFLOW ===");
         console.log(`Research Topic: ${topic}`);
@@ -336,7 +259,7 @@ async function runResearchWorkflow(topic, outputType, initialInput, rl) {
     }
 }
 
-async function runImageGenerationWorkflow(topic, style = "professional") {
+const runImageGenerationWorkflow = async (topic, style = "professional") => {
     try {
         console.log("\n=== STARTING IMAGE GENERATION ===");
         console.log(`Topic: ${topic}`);
@@ -363,7 +286,7 @@ async function runImageGenerationWorkflow(topic, style = "professional") {
     }
 }
 
-async function runUrlSummarizationWorkflow(url) {
+const runUrlSummarizationWorkflow = async (url) => {
     try {
         console.log("\n=== STARTING URL SUMMARIZATION ===");
         console.log(`URL: ${url}`);
@@ -393,7 +316,7 @@ async function runUrlSummarizationWorkflow(url) {
     }
 }
 
-async function main() {
+const main = async () => {
     try {
         await initDb();
         console.log("Multi-Agent Research System Initialized");
