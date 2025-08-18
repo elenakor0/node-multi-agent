@@ -68,12 +68,11 @@ export class SummaryReportAgent extends Agent {
             content: "Please create a summary (and keep the links!) based on these search results: " + JSON.stringify(searchResults, null, 2)
         });
 
-        const response = await this.client.chat.completions.create({
-            model: this.model,
-            messages: this.messages,
+        const response = await this.chatCompletion(this.messages, {
+            model: this.model
         });
 
-        let report = response.choices[0].message.content;
+        let report = response.content;
         
         // Clean up markdown code blocks if present
         if (report.startsWith("```markdown")) {

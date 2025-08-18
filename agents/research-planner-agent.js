@@ -79,12 +79,11 @@ export class ResearchPlannerAgent extends Agent {
             
             this.messages.push({ role: "user", content: planningPrompt });
             
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: this.messages,
+            const response = await this.chatCompletion(this.messages, {
+                model: this.model
             });
             
-            const researchPlan = response.choices[0].message.content;
+            const researchPlan = response.content;
             console.log("Generated research plan:");
             console.log(researchPlan);
             
@@ -124,12 +123,11 @@ export class ResearchPlannerAgent extends Agent {
             
             this.messages.push({ role: "user", content: planningPrompt });
             
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: this.messages,
+            const response = await this.chatCompletion(this.messages, {
+                model: this.model
             });
             
-            const initialPlan = response.choices[0].message.content;
+            const initialPlan = response.content;
             console.log("\nGenerated initial research plan:");
             console.log("=".repeat(50));
             console.log(initialPlan);
@@ -160,12 +158,11 @@ export class ResearchPlannerAgent extends Agent {
                     const prompt = "Please create a final version of the discussed research plan and return JUST that plan, nothing else, no other comments.";
                     this.messages.push({ role: "user", content: prompt });
                     
-                    const response = await this.client.chat.completions.create({
-                        model: this.model,
-                        messages: this.messages,
+                    const response = await this.chatCompletion(this.messages, {
+                        model: this.model
                     });
                     
-                    const finalPlan = response.choices[0].message.content;
+                    const finalPlan = response.content;
                     console.log("Here's the final research plan:");
                     console.log(finalPlan);
                     if (shouldCloseRl) rl.close();
@@ -175,14 +172,18 @@ export class ResearchPlannerAgent extends Agent {
                 this.messages.push({ role: "user", content: userInput });
 
                 while (true) {
-                    const response = await this.client.chat.completions.create({
+                    const response = await this.chatCompletionWithTools(this.messages, this.getToolSchemas(), {
                         model: this.model,
-                        messages: this.messages,
-                        tools: this.getToolSchemas(), // passing tools to LLM
-                        tool_choice: "auto",
+                        toolChoice: "auto",
                     });
 
-                    const choice = response.choices[0];
+                    // Convert standardized response back to OpenAI format for compatibility
+                    const choice = {
+                        message: {
+                            content: response.content,
+                            tool_calls: response.toolCalls
+                        }
+                    };
                     this.messages.push(choice.message);
 
                     if (!choice.message.tool_calls) {

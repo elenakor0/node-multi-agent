@@ -157,17 +157,16 @@ Please evaluate each piece of content against the research plan and return the e
             `;
 
             // Get evaluation from AI
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: [
-                    ...this.messages,
-                    { role: "user", content: evaluationPrompt }
-                ],
+            const response = await this.chatCompletion([
+                ...this.messages,
+                { role: "user", content: evaluationPrompt }
+            ], {
+                model: this.model
             });
 
             let evaluationResults;
             try {
-                const responseText = response.choices[0].message.content.trim();
+                const responseText = response.content.trim();
                 // Remove markdown code blocks if present
                 const cleanedResponse = responseText.replace(/```json\n?|```\n?/g, '');
                 evaluationResults = JSON.parse(cleanedResponse);

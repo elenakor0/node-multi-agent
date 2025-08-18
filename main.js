@@ -1,12 +1,9 @@
 import { initDb } from './database/database.js';
 import { runResearchWorkflow, runImageGenerationWorkflow, runUrlSummarizationWorkflow } from './workflows/index.js';
+import { aiProviderManager } from './ai-providers/index.js';
+import { AI_PROVIDER_CONFIG, getProviderConfig } from './ai-provider-config.js';
 import fs from 'fs/promises';
-import OpenAI from 'openai';
 import readline from 'readline';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -53,8 +50,8 @@ const availableTools = [
                     },
                     style: {
                         type: "string",
-                        enum: ["professional", "artistic", "minimalist", "realistic", "abstract"],
-                        description: "The style of the image to generate (default: professional)"
+                        enum: ["professional", "artistic", "minimalist", "realistic", "abstract", "callToAction"],
+                        description: "The style of the image to generate. Use 'callToAction' for buttons, CTAs, or clickable elements (default: professional)"
                     }
                 },
                 required: ["topic"]
@@ -90,12 +87,10 @@ const getUserInput = async (prompt) => {
 
 const routeUserRequest = async (userInput) => {
     try {
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a request router. Analyze the user's request and determine if they want to:
+        const messages = [
+            {
+                role: "system",
+                content: `You are a request router. Analyze the user's request and determine if they want to:
 1. Conduct research on a topic (use the start_research function)
 2. Generate an AI image (use the generate_image function)  
 3. Summarize a URL/web page (use the summarize_url function)
@@ -114,8 +109,10 @@ Look for keywords that indicate their preference:
 If the user wants to generate, create, or make an image, use the generate_image function.
 Look for image generation indicators:
 - "generate an image", "create an image", "make an image", "draw", "illustrate", "picture of"
-- Available styles: professional (default), artistic, minimalist, realistic, abstract
+- Available styles: professional (default), artistic, minimalist, realistic, abstract, callToAction
+- Use "callToAction" style for: buttons, call-to-action elements, CTAs, clickable buttons, sign-up buttons, download buttons, or any image meant to be clicked
 - If no style is specified, default to "professional"
+- If the request mentions "button", "call-to-action", "CTA", "clickable", or similar terms, use "callToAction" style
 
 If the user wants to summarize content from a specific URL or web page, use the summarize_url function.
 Look for URL summarization indicators:
@@ -136,6 +133,9 @@ Examples of image generation requests:
 - "Create an artistic image of a sunset" → generate_image: topic: "sunset", style: "artistic"
 - "Make a minimalist picture of modern architecture" → generate_image: topic: "modern architecture", style: "minimalist"
 - "Generate an image about space exploration" → generate_image: topic: "space exploration", style: "professional"
+- "Create a call-to-action button for chat" → generate_image: topic: "call-to-action button for chat", style: "callToAction"
+- "Generate a button that says Start Now" → generate_image: topic: "button that says Start Now", style: "callToAction"
+- "Make a clickable download button" → generate_image: topic: "clickable download button", style: "callToAction"
 
 Examples of URL summarization requests:
 - "Please summarize this URL https://example.com/article" → summarize_url: url: "https://example.com/article"
@@ -149,17 +149,22 @@ Examples of general requests:
 - "How are you?"
 - "What's 2+2?"
 - "Hello"`
-                },
-                {
-                    role: "user",
-                    content: userInput
-                }
-            ],
-            tools: availableTools,
-            tool_choice: "auto"
+            },
+            {
+                role: "user",
+                content: userInput
+            }
+        ];
+
+        const response = await aiProviderManager.chatCompletionWithTools(messages, availableTools, {
+            model: "gpt-4",
+            toolChoice: "auto"
         });
 
-        return completion.choices[0].message;
+        return {
+            content: response.content,
+            tool_calls: response.toolCalls
+        };
     } catch (error) {
         console.error("Error routing request:", error);
         return { content: "I encountered an error processing your request. Please try again." };
@@ -168,21 +173,22 @@ Examples of general requests:
 
 const handleGeneralChat = async (userInput) => {
     try {
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a helpful assistant. Provide brief, helpful responses to general questions. If the user asks about research topics, suggest they ask you to research the topic for comprehensive results."
-                },
-                {
-                    role: "user",
-                    content: userInput
-                }
-            ]
+        const messages = [
+            {
+                role: "system",
+                content: "You are a helpful assistant. Provide brief, helpful responses to general questions. If the user asks about research topics, suggest they ask you to research the topic for comprehensive results."
+            },
+            {
+                role: "user",
+                content: userInput
+            }
+        ];
+
+        const response = await aiProviderManager.chatCompletion(messages, {
+            model: "gpt-4"
         });
 
-        return completion.choices[0].message.content;
+        return response.content;
     } catch (error) {
         console.error("Error in general chat:", error);
         return "I encountered an error. Please try again.";
@@ -194,6 +200,19 @@ const handleGeneralChat = async (userInput) => {
 const main = async () => {
     try {
         await initDb();
+        
+        // AI PROVIDER CONFIGURATION
+        const config = getProviderConfig();
+        
+        if (config.mode === 'manual') {
+            // Use hardcoded provider from config file
+            const providerConfig = config.providers[config.forcedProvider] || {};
+            await aiProviderManager.initializeSingleProvider(config.forcedProvider, providerConfig);
+        } else {
+            // Use automatic provider detection
+            await aiProviderManager.initializeProviders();
+        }
+        
         console.log("Multi-Agent Research System Initialized");
         console.log("=====================================");
         console.log("Ask me anything! I can:");
@@ -238,7 +257,9 @@ const main = async () => {
                     await runResearchWorkflow(args.topic, args.output_type, userInput, rl);
                 } else if (toolCall.function.name === "generate_image") {
                     const args = JSON.parse(toolCall.function.arguments);
-                    await runImageGenerationWorkflow(args.topic, args.style || "professional");
+                    // For call-to-action buttons, use the original user input to preserve all details
+                    const topic = (args.style === "callToAction") ? userInput : args.topic;
+                    await runImageGenerationWorkflow(topic, args.style || "professional");
                 } else if (toolCall.function.name === "summarize_url") {
                     const args = JSON.parse(toolCall.function.arguments);
                     await runUrlSummarizationWorkflow(args.url);

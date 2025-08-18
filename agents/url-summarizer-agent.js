@@ -248,12 +248,11 @@ Create a well-structured summary that captures the main points and key informati
 
             this.messages.push({ role: "user", content: summaryPrompt });
 
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: this.messages,
+            const response = await this.chatCompletion(this.messages, {
+                model: this.model
             });
 
-            const summary = response.choices[0].message.content.trim();
+            const summary = response.content.trim();
 
             // Save summary to file
             const summaryPath = await this.writeSummaryToFile(summary, summaryFolderPath, scrapedData);

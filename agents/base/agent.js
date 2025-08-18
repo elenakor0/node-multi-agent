@@ -1,16 +1,13 @@
-import OpenAI from 'openai';
+import { aiProviderManager } from '../../ai-providers/index.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 export class Agent {
-    constructor(model = "gpt-4o-mini") {
-        this.client = client;
+    constructor(model = "gpt-4o-mini", preferredProvider = null) {
+        this.aiProvider = aiProviderManager;
         this.model = model;
+        this.preferredProvider = preferredProvider;
         this.messages = [];
         this.tools = new Map();
     }
@@ -39,6 +36,75 @@ export class Agent {
         }
 
         return `Unknown tool: ${fnName}`;
+    }
+
+    /**
+     * Send a chat completion request using the configured AI provider
+     */
+    async chatCompletion(messages, options = {}) {
+        const requestOptions = {
+            model: options.model || this.model,
+            ...options
+        };
+
+        if (this.preferredProvider) {
+            try {
+                return await this.aiProvider.switchProviderWithFallback(
+                    this.preferredProvider,
+                    messages,
+                    null,
+                    requestOptions
+                );
+            } catch (error) {
+                console.warn(`Failed to use preferred provider ${this.preferredProvider}, using default:`, error.message);
+            }
+        }
+
+        return await this.aiProvider.chatCompletion(messages, requestOptions);
+    }
+
+    /**
+     * Send a chat completion request with tools using the configured AI provider
+     */
+    async chatCompletionWithTools(messages, tools, options = {}) {
+        const requestOptions = {
+            model: options.model || this.model,
+            ...options
+        };
+
+        if (this.preferredProvider) {
+            try {
+                return await this.aiProvider.switchProviderWithFallback(
+                    this.preferredProvider,
+                    messages,
+                    tools,
+                    requestOptions
+                );
+            } catch (error) {
+                console.warn(`Failed to use preferred provider ${this.preferredProvider}, using default:`, error.message);
+            }
+        }
+
+        return await this.aiProvider.chatCompletionWithTools(messages, tools, requestOptions);
+    }
+
+    /**
+     * Set the preferred AI provider for this agent
+     */
+    setPreferredProvider(providerName) {
+        if (this.aiProvider.isProviderAvailable(providerName)) {
+            this.preferredProvider = providerName;
+            console.log(`Agent now prefers ${providerName} provider`);
+        } else {
+            console.warn(`Provider ${providerName} is not available`);
+        }
+    }
+
+    /**
+     * Get available AI providers
+     */
+    getAvailableProviders() {
+        return this.aiProvider.getAvailableProviders();
     }
 
     async run() {

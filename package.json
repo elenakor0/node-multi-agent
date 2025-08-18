@@ -1,7 +1,7 @@
 {
   "name": "node-multi-agent",
   "version": "1.0.0",
-  "description": "A multi-agent system for research planning and web search using OpenAI and Brave Search API",
+  "description": "A multi-agent system for research planning and web search using multiple AI providers (OpenAI, Gemini, Claude) and Brave Search API",
   "main": "main.js",
   "type": "module",
   "scripts": {
@@ -13,10 +13,15 @@
     "agents",
     "research",
     "openai",
+    "gemini",
+    "claude",
+    "multi-provider",
     "web-search"
   ],
   "dependencies": {
     "openai": "^4.28.0",
+    "@google/generative-ai": "^0.17.1",
+    "@anthropic-ai/sdk": "^0.24.3",
     "dotenv": "^16.4.1",
     "sqlite3": "^5.1.6",
     "axios": "^1.6.7",

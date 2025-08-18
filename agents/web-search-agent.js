@@ -140,14 +140,13 @@ export class WebSearchAgent extends Agent {
             content: "Here's the research plan based on which you should derive search terms: " + researchPlan
         });
 
-        const response = await this.client.chat.completions.create({
-            model: this.model,
-            messages: this.messages,
+        const response = await this.chatCompletion(this.messages, {
+            model: this.model
         });
 
         let searchConfig;
         try {
-            const responseText = response.choices[0].message.content.trim();
+            const responseText = response.content.trim();
             // Remove markdown code blocks if present
             const cleanedResponse = responseText.replace(/```json\n?|```\n?/g, '');
             searchConfig = JSON.parse(cleanedResponse);

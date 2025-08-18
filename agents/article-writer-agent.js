@@ -149,15 +149,14 @@ Include a compelling title, clear sections, and maintain journalistic quality th
 
             // Generate article
             console.log("Generating article content...");
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: [
-                    ...this.messages,
-                    { role: "user", content: articlePrompt }
-                ],
+            const response = await this.chatCompletion([
+                ...this.messages,
+                { role: "user", content: articlePrompt }
+            ], {
+                model: this.model
             });
 
-            const article = response.choices[0].message.content.trim();
+            const article = response.content.trim();
             
             // Extract title from article for image generation
             const titleMatch = article.match(/^#\s*(.+)$/m);
